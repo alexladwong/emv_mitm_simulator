@@ -1,0 +1,34 @@
+services:
+  - type: web
+    name: emv-mitm-simulator
+    runtime: python
+    rootDir: .
+    buildCommand: pip install -r requirements.txt
+    startCommand: cd backend && uvicorn main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.13.7
+      - key: DATABASE_PATH
+        value: /var/data/simulator.db
+      - key: LOGIN_CODE_SECONDS
+        value: "30"
+      - key: SMS_DEBUG_FALLBACK
+        value: "false"
+      - key: ADMIN_EMAIL
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: ADMIN_PHONE
+        sync: false
+      - key: SMS_API_URL
+        sync: false
+      - key: SMS_API_KEY
+        sync: false
+      - key: SMS_TO_NUMBER
+        sync: false
+      - key: SMS_SENDER
+        sync: false
+    disk:
+      name: emv-mitm-data
+      mountPath: /var/data
+      sizeGB: 1

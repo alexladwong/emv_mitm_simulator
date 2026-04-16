@@ -26,7 +26,7 @@ from risk_engine import RiskEngine
 BASE_DIR = Path(__file__).resolve().parents[1]
 FRONTEND_DIR = BASE_DIR / "frontend"
 DATA_FILE = BASE_DIR / "data" / "transactions.json"
-DB_FILE = BASE_DIR / "data" / "simulator.db"
+DB_FILE = Path(os.getenv("DATABASE_PATH", str(BASE_DIR / "data" / "simulator.db"))).expanduser()
 
 
 def _load_env_file() -> None:
@@ -44,9 +44,9 @@ def _load_env_file() -> None:
 
 _load_env_file()
 
-ADMIN_EMAIL = "admin@ladwongdevelopers.dev"
-ADMIN_PASSWORD = "Admin@123"
-ADMIN_PHONE = "+256752213955"
+ADMIN_EMAIL = os.getenv("ADMIN_EMAIL", "admin@ladwongdevelopers.dev").strip()
+ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "Admin@123").strip()
+ADMIN_PHONE = os.getenv("ADMIN_PHONE", "+256752213955").strip()
 SESSION_HOURS = 12
 LOGIN_CODE_SECONDS = int(os.getenv("LOGIN_CODE_SECONDS", "30"))
 SMS_API_URL = os.getenv("SMS_API_URL", "https://yoolasms.com/api/v1/send").strip()
@@ -264,7 +264,7 @@ def _require_auth(authorization: str | None) -> dict[str, Any]:
 
 
 def _get_connection() -> sqlite3.Connection:
-    DATA_FILE.parent.mkdir(parents=True, exist_ok=True)
+    DB_FILE.parent.mkdir(parents=True, exist_ok=True)
     connection = sqlite3.connect(DB_FILE)
     connection.row_factory = sqlite3.Row
     return connection
@@ -547,7 +547,7 @@ def _read_metrics() -> dict[str, Any]:
         "latest_run": dict(latest) if latest else None,
         "database": {
             "engine": "sqlite",
-            "path": str(DB_FILE),
+            "path": str(DB_FILE.name),
         },
     }
 
@@ -865,4 +865,4 @@ app.mount("/", StaticFiles(directory=FRONTEND_DIR), name="frontend")
 if __name__ == "__main__":
     import uvicorn
 
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host="0.0.0.0", port=int(os.getenv("PORT", "8000")))
