@@ -16,6 +16,7 @@ from fastapi import FastAPI, Header, HTTPException, Query
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
+from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from crypto_engine import RSACrypto
 from emv_engine import EMVTransaction
@@ -56,6 +57,20 @@ SMS_API_KEY = os.getenv("SMS_API_KEY", "").strip()
 SMS_TO_NUMBER = os.getenv("SMS_TO_NUMBER", "").strip()
 SMS_SENDER = os.getenv("SMS_SENDER", "EMVLAB").strip() or "EMVLAB"
 SMS_DEBUG_FALLBACK = os.getenv("SMS_DEBUG_FALLBACK", "true").strip().lower() in {"1", "true", "yes", "on"}
+ALLOWED_HOSTS = [host.strip() for host in os.getenv("ALLOWED_HOSTS", "127.0.0.1,localhost,emv-mitm.onrender.com").split(",") if host.strip()]
+CONTENT_SECURITY_POLICY = (
+    "default-src 'self'; "
+    "base-uri 'self'; "
+    "form-action 'self'; "
+    "frame-ancestors 'none'; "
+    "img-src 'self' data:; "
+    "object-src 'none'; "
+    "script-src 'self'; "
+    "style-src 'self' 'unsafe-inline'; "
+    "font-src 'self' data:; "
+    "connect-src 'self'; "
+    "manifest-src 'self'"
+)
 
 
 class TransactionRequest(BaseModel):
@@ -87,6 +102,27 @@ app = FastAPI(
     description="Contactless Payment Security Research",
     version="2.0.0",
 )
+
+app.add_middleware(TrustedHostMiddleware, allowed_hosts=ALLOWED_HOSTS or ["*"])
+
+
+@app.middleware("http")
+async def add_security_headers(request, call_next):
+    response = await call_next(request)
+    response.headers["Content-Security-Policy"] = CONTENT_SECURITY_POLICY
+    response.headers["Cross-Origin-Embedder-Policy"] = "require-corp"
+    response.headers["Cross-Origin-Opener-Policy"] = "same-origin"
+    response.headers["Cross-Origin-Resource-Policy"] = "same-origin"
+    response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=(), payment=()"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+
+    forwarded_proto = request.headers.get("x-forwarded-proto", "")
+    if request.url.scheme == "https" or forwarded_proto.lower() == "https":
+        response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains; preload"
+
+    return response
 
 emv = EMVTransaction()
 mitm = MITMAttack()

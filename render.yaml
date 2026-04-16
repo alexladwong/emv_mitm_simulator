@@ -10,6 +10,8 @@ services:
         value: 3.13.7
       - key: DATABASE_PATH
         value: /var/data/simulator.db
+      - key: ALLOWED_HOSTS
+        value: emv-mitm.onrender.com
       - key: LOGIN_CODE_SECONDS
         value: "30"
       - key: SMS_DEBUG_FALLBACK
