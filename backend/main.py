@@ -27,6 +27,8 @@ BASE_DIR = Path(__file__).resolve().parents[1]
 FRONTEND_DIR = BASE_DIR / "frontend"
 DATA_FILE = BASE_DIR / "data" / "transactions.json"
 DB_FILE = Path(os.getenv("DATABASE_PATH", str(BASE_DIR / "data" / "simulator.db"))).expanduser()
+FALLBACK_DB_FILE = BASE_DIR / "data" / "simulator.db"
+TEMP_DB_FILE = Path("/tmp/emv_mitm_simulator.db")
 
 
 def _load_env_file() -> None:
@@ -264,10 +266,22 @@ def _require_auth(authorization: str | None) -> dict[str, Any]:
 
 
 def _get_connection() -> sqlite3.Connection:
-    DB_FILE.parent.mkdir(parents=True, exist_ok=True)
-    connection = sqlite3.connect(DB_FILE)
-    connection.row_factory = sqlite3.Row
-    return connection
+    db_candidates = []
+    for candidate in (DB_FILE, FALLBACK_DB_FILE, TEMP_DB_FILE):
+        if candidate not in db_candidates:
+            db_candidates.append(candidate)
+
+    last_error: Exception | None = None
+    for candidate in db_candidates:
+        try:
+            candidate.parent.mkdir(parents=True, exist_ok=True)
+            connection = sqlite3.connect(candidate)
+            connection.row_factory = sqlite3.Row
+            return connection
+        except OSError as error:
+            last_error = error
+
+    raise RuntimeError(f"Unable to open any configured database path: {last_error}") from last_error
 
 
 def _ensure_column(connection: sqlite3.Connection, table: str, column: str, definition: str) -> None:
