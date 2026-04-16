@@ -442,32 +442,34 @@ async function postJson(url, payload) {
     headers: authHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify(payload),
   });
+  const body = await response.json().catch(() => ({}));
   if (response.status === 401) {
     authToken = "";
     authUser = null;
     localStorage.removeItem("emv_admin_token");
     setAuthState(false);
-    throw new Error("Authentication required");
+    throw new Error(body.detail || "Authentication required");
   }
   if (!response.ok) {
-    throw new Error(`Request failed: ${response.status}`);
+    throw new Error(body.detail || `Request failed: ${response.status}`);
   }
-  return response.json();
+  return body;
 }
 
 async function getJson(url) {
   const response = await fetch(url, { headers: authHeaders() });
+  const body = await response.json().catch(() => ({}));
   if (response.status === 401) {
     authToken = "";
     authUser = null;
     localStorage.removeItem("emv_admin_token");
     setAuthState(false);
-    throw new Error("Authentication required");
+    throw new Error(body.detail || "Authentication required");
   }
   if (!response.ok) {
-    throw new Error(`Request failed: ${response.status}`);
+    throw new Error(body.detail || `Request failed: ${response.status}`);
   }
-  return response.json();
+  return body;
 }
 
 function setAttackState(active) {
