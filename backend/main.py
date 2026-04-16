@@ -388,7 +388,6 @@ def _seed_admin_user() -> None:
             INSERT INTO users (email, password_hash, phone_number, role)
             VALUES (?, ?, ?, ?)
             ON CONFLICT(email) DO UPDATE SET
-                password_hash = excluded.password_hash,
                 phone_number = excluded.phone_number,
                 role = excluded.role
             """,
