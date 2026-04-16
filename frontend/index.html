@@ -285,12 +285,26 @@
         <form id="passwordForm" class="login-form">
           <label>
             Current Password
-            <input type="password" id="currentPassword" required />
+            <div class="input-row">
+              <input type="password" id="currentPassword" required />
+              <button class="btn btn-ghost input-toggle" type="button" data-toggle-password="currentPassword">Show</button>
+            </div>
           </label>
           <label>
             New Password
-            <input type="password" id="newPassword" minlength="8" required />
+            <div class="input-row">
+              <input type="password" id="newPassword" minlength="8" required />
+              <button class="btn btn-ghost input-toggle" type="button" data-toggle-password="newPassword">Show</button>
+            </div>
           </label>
+          <label>
+            Confirm New Password
+            <div class="input-row">
+              <input type="password" id="confirmPassword" minlength="8" required />
+              <button class="btn btn-ghost input-toggle" type="button" data-toggle-password="confirmPassword">Show</button>
+            </div>
+          </label>
+          <div class="section-caption">After a successful password change, the current admin session will be locked and you will sign in again with the new password.</div>
           <button class="btn" type="submit">Update Password</button>
         </form>
         <div id="passwordMessage" class="login-error"></div>

@@ -402,6 +402,18 @@ body {
   text-transform: uppercase;
 }
 
+.input-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+}
+
+.input-toggle {
+  min-width: 88px;
+  padding-inline: 12px;
+}
+
 .code-inputs {
   display: grid;
   grid-template-columns: repeat(6, minmax(0, 1fr));
@@ -502,6 +514,10 @@ body {
   margin-top: 14px;
   color: var(--danger);
   text-align: center;
+}
+
+.login-error.status-success {
+  color: var(--accent);
 }
 
 .login-code-countdown {
@@ -1429,6 +1445,14 @@ input:focus {
     width: 100%;
     min-width: 0;
     justify-self: stretch;
+  }
+
+  .input-row {
+    grid-template-columns: 1fr;
+  }
+
+  .input-toggle {
+    width: 100%;
   }
 
   .amount-control {

@@ -142,7 +142,9 @@ const auditBoard = document.getElementById("auditBoard");
 const passwordForm = document.getElementById("passwordForm");
 const currentPassword = document.getElementById("currentPassword");
 const newPassword = document.getElementById("newPassword");
+const confirmPassword = document.getElementById("confirmPassword");
 const passwordMessage = document.getElementById("passwordMessage");
+const passwordToggleButtons = Array.from(document.querySelectorAll("[data-toggle-password]"));
 const prevAuditPageBtn = document.getElementById("prevAuditPageBtn");
 const nextAuditPageBtn = document.getElementById("nextAuditPageBtn");
 const auditPageLabel = document.getElementById("auditPageLabel");
@@ -1045,18 +1047,39 @@ idleLogoutNowBtn.addEventListener("click", async () => {
 passwordForm.addEventListener("submit", async (event) => {
   event.preventDefault();
   passwordMessage.textContent = "";
+  passwordMessage.classList.remove("status-success");
+  if (newPassword.value !== confirmPassword.value) {
+    passwordMessage.textContent = "New password confirmation does not match.";
+    return;
+  }
   try {
     await postJson(`${API_BASE}/auth/change-password`, {
       current_password: currentPassword.value,
       new_password: newPassword.value,
     });
-    passwordMessage.textContent = "Password updated successfully.";
+    passwordMessage.textContent = "Password updated successfully. Redirecting to sign in again.";
+    passwordMessage.classList.add("status-success");
     currentPassword.value = "";
     newPassword.value = "";
-    await initialize();
+    confirmPassword.value = "";
+    window.setTimeout(() => {
+      forceLogout("Password updated. Sign in again with your new password.");
+    }, 1200);
   } catch (error) {
+    passwordMessage.classList.remove("status-success");
     passwordMessage.textContent = error.message;
   }
+});
+
+passwordToggleButtons.forEach((button) => {
+  button.addEventListener("click", () => {
+    const targetId = button.dataset.togglePassword;
+    const input = document.getElementById(targetId);
+    if (!input) return;
+    const isPassword = input.type === "password";
+    input.type = isPassword ? "text" : "password";
+    button.textContent = isPassword ? "Hide" : "Show";
+  });
 });
 
 prevPageBtn.addEventListener("click", async () => {
