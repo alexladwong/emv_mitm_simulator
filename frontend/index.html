@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>EMV MITM Simulator | Payment Security Research</title>
+  <link rel="icon" type="image/x-icon" href="assets/favicon.ico" />
+  <link rel="icon" type="image/png" sizes="64x64" href="assets/favicon.png" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div id="hackerLoader" class="hacker-loader">
+    <div class="world-map">
+      <img src="assets/backgrounds/world-map-large.png" alt="World Map" />
+    </div>
+    <div class="loader-content">
+      <div class="loader-terminal">
+        <div class="terminal-header">
+          <span class="terminal-dot"></span>
+          <span class="terminal-dot"></span>
+          <span class="terminal-dot"></span>
+          <span class="terminal-title">EMV MITM SIMULATOR</span>
+        </div>
+        <div class="terminal-body">
+          <div class="terminal-line">
+            <span class="prompt">$</span>
+            <span class="typing-text">Initializing secure environment...</span>
+          </div>
+          <div class="terminal-line">
+            <span class="prompt">$</span>
+            <span class="typing-text">Loading cryptographic modules...</span>
+          </div>
+          <div class="terminal-line">
+            <span class="prompt">$</span>
+            <span class="typing-text">Establishing secure connection...</span>
+          </div>
+          <div class="terminal-line">
+            <span class="prompt">$</span>
+            <span class="typing-text">Verifying trust boundaries...</span>
+          </div>
+          <div class="terminal-line">
+            <span class="prompt">$</span>
+            <span class="typing-text">Preparing MITM detection systems...</span>
+          </div>
+          <div class="loader-bar">
+            <div class="loader-progress"></div>
+          </div>
+          <div class="loader-status">
+            <span class="status-text">CONNECTING<span class="loading-dots">...</span></span>
+            <span class="status-percent">0%</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div id="loginOverlay" class="login-overlay">
+    <div class="auth-shell">
+      <section class="auth-copy">
+        <p class="kicker">Admin Access Required</p>
+        <h2>Sign In To Unlock The Simulator</h2>
+        <p class="subtitle">Authenticate as the administrator with password plus SMS verification to access the dashboard, API actions, audit trail, and database-backed simulator controls.</p>
+        <div class="auth-points">
+          <div class="note-item">SQLite-backed transaction storage and metrics</div>
+          <div class="note-item">Protected admin actions and session expiry</div>
+          <div class="note-item">Audit logging for authentication and simulations</div>
+          <div class="note-item">Two-factor sign-in using SMS or local debug fallback</div>
+        </div>
+      </section>
+      <section class="login-panel">
+        <form id="loginForm" class="login-form">
+          <label>
+            Email
+            <input type="email" id="loginEmail" autocomplete="off" required />
+          </label>
+          <label>
+            Password
+            <input type="password" id="loginPassword" autocomplete="off" required />
+          </label>
+          <label id="loginCodeGroup" class="is-hidden">
+            SMS Verification Code
+            <input type="text" id="loginCode" inputmode="numeric" autocomplete="one-time-code" maxlength="6" />
+          </label>
+          <div class="login-actions">
+            <button class="btn" id="loginSubmitBtn" type="submit">Send Verification Code</button>
+            <button class="btn btn-ghost is-hidden" id="loginResetBtn" type="button">Start Over</button>
+          </div>
+        </form>
+        <div id="loginHint" class="login-hint">Step 1: enter your email and password to request an SMS code.</div>
+        <div id="loginError" class="login-error"></div>
+      </section>
+    </div>
+  </div>
+  <div id="logoutModal" class="dialog-overlay is-hidden" aria-hidden="true">
+    <div class="dialog-card" role="dialog" aria-modal="true" aria-labelledby="logoutTitle">
+      <p class="kicker">Confirm Logout</p>
+      <h2 id="logoutTitle">End Admin Session?</h2>
+      <p class="subtitle">You will return to the locked sign-in screen and need to authenticate again to access the simulator.</p>
+      <div class="dialog-actions">
+        <button class="btn btn-ghost" id="cancelLogoutBtn" type="button">Cancel</button>
+        <button class="btn" id="confirmLogoutBtn" type="button">Log Out</button>
+      </div>
+    </div>
+  </div>
+  <div id="idleWarningModal" class="dialog-overlay is-hidden" aria-hidden="true">
+    <div class="dialog-card dialog-card-warning" role="dialog" aria-modal="true" aria-labelledby="idleWarningTitle">
+      <p class="kicker">Session Warning</p>
+      <h2 id="idleWarningTitle">Auto Logout In <span id="idleCountdownLabel">60</span>s</h2>
+      <p id="idleWarningMessage" class="subtitle">No activity has been detected. The dashboard will lock automatically after five minutes of inactivity.</p>
+      <div class="dialog-actions">
+        <button class="btn btn-ghost" id="idleLogoutNowBtn" type="button">Log Out Now</button>
+        <button class="btn" id="staySignedInBtn" type="button">Stay Signed In</button>
+      </div>
+    </div>
+  </div>
+  <div class="container">
+    <button class="floating-logout is-hidden" id="logoutBtn" type="button">Admin Logout</button>
+    <header class="header">
+      <p class="kicker">Contactless Payment Security Research</p>
+      <h1>EMV MITM Simulator</h1>
+      <p class="subtitle">Local lab dashboard for demonstrating EMV trust-model failure and MITM-style verification bypass in a simulator.</p>
+    </header>
+
+    <section class="attack-toggle">
+      <div>
+        <div class="toggle-label">MITM ATTACK MODE</div>
+        <div class="attack-status">Status: <span id="attackStatusText" class="status-inactive">INACTIVE</span></div>
+      </div>
+      <label class="toggle-switch" aria-label="Toggle MITM attack mode">
+        <input type="checkbox" id="attackToggle" />
+        <span class="slider"></span>
+      </label>
+      <div class="amount-control">
+        <span>Amount</span>
+        <input type="number" id="amount" value="10000" min="1" />
+        <button class="btn" id="runTransactionBtn" type="button">Run Transaction</button>
+        <button class="btn btn-ghost" id="exportReportBtn" type="button">Export Current Run</button>
+      </div>
+    </section>
+
+    <section class="auth-status-bar">
+      <div>
+        <strong id="authUserLabel">Not signed in</strong>
+        <span id="sessionExpiryLabel">Session inactive</span>
+      </div>
+      <div class="status-chip" id="sessionStatusChip">Locked</div>
+    </section>
+
+    <section class="lab-notice">
+      <strong>Local lab only.</strong> This dashboard drives a safe simulator on your machine. It is not connected to cards, terminals, or real payment networks.
+    </section>
+
+    <section class="metrics-strip" id="metricsStrip">
+      <article class="metric-card">
+        <span class="tile-label">Database</span>
+        <strong>SQLite</strong>
+      </article>
+      <article class="metric-card">
+        <span class="tile-label">Total Runs</span>
+        <strong>0</strong>
+      </article>
+      <article class="metric-card">
+        <span class="tile-label">Attack Detections</span>
+        <strong>0</strong>
+      </article>
+      <article class="metric-card">
+        <span class="tile-label">Average Risk</span>
+        <strong>0</strong>
+      </article>
+    </section>
+
+    <section class="hero-grid">
+      <section class="card scenario-card">
+        <div class="section-label">Live Topology</div>
+        <h2>Trust Flow Visualizer</h2>
+        <div id="trustFlow" class="trust-flow trust-flow-safe">
+          <div class="flow-node">
+            <span class="node-icon">💳</span>
+            <strong>Card</strong>
+            <span>EMV source</span>
+          </div>
+          <div class="flow-link flow-link-safe">
+            <span>Secure relay</span>
+          </div>
+          <div class="flow-node attacker-node" id="attackerNode">
+            <span class="node-icon">🕵️</span>
+            <strong>Attacker</strong>
+            <span>Inactive</span>
+          </div>
+          <div class="flow-link" id="middleLink">
+            <span>Direct trust</span>
+          </div>
+          <div class="flow-node">
+            <span class="node-icon">📟</span>
+            <strong>Terminal</strong>
+            <span>Reads claims</span>
+          </div>
+          <div class="flow-link">
+            <span>Authorization</span>
+          </div>
+          <div class="flow-node">
+            <span class="node-icon">🏦</span>
+            <strong>Bank</strong>
+            <span>Authorizes</span>
+          </div>
+        </div>
+        <div id="scenarioBanner" class="scenario-banner safe-banner">
+          Normal flow: the terminal trusts the card and sees verified CVM data.
+        </div>
+      </section>
+
+      <section class="card telemetry-card">
+        <div class="section-label">Transaction Telemetry</div>
+        <h2>What The System Thinks</h2>
+        <div id="telemetryGrid" class="telemetry-grid">
+          <article class="telemetry-tile">
+            <span class="tile-label">CVM</span>
+            <strong>Unknown</strong>
+          </article>
+          <article class="telemetry-tile">
+            <span class="tile-label">Device Claim</span>
+            <strong>Unknown</strong>
+          </article>
+          <article class="telemetry-tile">
+            <span class="tile-label">Actual Verification</span>
+            <strong>Unknown</strong>
+          </article>
+          <article class="telemetry-tile">
+            <span class="tile-label">Trust Outcome</span>
+            <strong>Waiting</strong>
+          </article>
+        </div>
+      </section>
+    </section>
+
+    <section class="hero-grid">
+      <section class="card">
+        <div class="section-label">Message Trace</div>
+        <h2>APDU-Style Event Timeline</h2>
+        <div id="traceBoard" class="trace-board">
+          <div class="empty">Run a transaction to populate the trace.</div>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="section-label">Attacker Console</div>
+        <h2>Field Manipulation Watch</h2>
+        <div id="attackerConsole" class="console-board">
+          <div class="empty">MITM console is idle.</div>
+        </div>
+      </section>
+    </section>
+
+    <section class="hero-grid">
+      <section class="card">
+        <div class="section-label">Audit Trail</div>
+        <h2>Recent Security Activity</h2>
+        <p class="section-caption">Showing 4 audit events per page for a cleaner presentation view.</p>
+        <div id="auditBoard" class="trace-board">
+          <div class="empty">No audit data loaded yet.</div>
+        </div>
+        <div class="pagination-bar">
+          <button class="btn btn-ghost" id="prevAuditPageBtn" type="button">Previous</button>
+          <span id="auditPageLabel">Page 1</span>
+          <button class="btn btn-ghost" id="nextAuditPageBtn" type="button">Next</button>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="section-label">Admin Controls</div>
+        <h2>Credential Management</h2>
+        <form id="passwordForm" class="login-form">
+          <label>
+            Current Password
+            <input type="password" id="currentPassword" required />
+          </label>
+          <label>
+            New Password
+            <input type="password" id="newPassword" minlength="8" required />
+          </label>
+          <button class="btn" type="submit">Update Password</button>
+        </form>
+        <div id="passwordMessage" class="login-error"></div>
+      </section>
+    </section>
+
+    <main class="grid">
+      <section class="card">
+        <h2>Transaction Flow</h2>
+        <div id="transactionSteps">
+          <div class="step empty">Run a transaction to see the EMV flow.</div>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>Risk Analysis</h2>
+        <div id="riskAnalysis">
+          <div class="empty">No transaction analyzed yet.</div>
+        </div>
+      </section>
+    </main>
+
+    <section class="lower-grid">
+      <section class="card">
+        <div class="section-label">Scenario Comparator</div>
+        <h2>Normal vs Attack Snapshot</h2>
+        <div id="comparisonPanel" class="comparison-grid">
+          <article class="comparison-card">
+            <span class="tile-label">Normal Flow</span>
+            <strong>Waiting</strong>
+            <p>No baseline run yet.</p>
+          </article>
+          <article class="comparison-card">
+            <span class="tile-label">Attack Flow</span>
+            <strong>Waiting</strong>
+            <p>No attack run yet.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>The Three Lies</h2>
+        <div id="threeLies"></div>
+      </section>
+
+      <section class="card">
+        <h2>RSA Signature Vulnerability</h2>
+        <div id="cryptoInfo" class="crypto-box"></div>
+      </section>
+    </section>
+
+    <section class="hero-grid">
+      <section class="card">
+        <div class="section-label">Presentation Summary</div>
+        <h2>What To Say During The Demo</h2>
+        <div id="demoSummary" class="summary-grid">
+          <article class="summary-card">
+            <span class="tile-label">Threat Model</span>
+            <p>Terminal trusts verification claims coming from the card path.</p>
+          </article>
+          <article class="summary-card">
+            <span class="tile-label">Attack Effect</span>
+            <p>Unsigned verification context can be altered without changing signed fields.</p>
+          </article>
+          <article class="summary-card">
+            <span class="tile-label">Observed Result</span>
+            <p>Bank approval can still happen while real verification never occurred.</p>
+          </article>
+          <article class="summary-card">
+            <span class="tile-label">Defensive Story</span>
+            <p>Bind CVM to signatures, verify device claims, and score anomalies in real time.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="section-label">Judge Notes</div>
+        <h2>Why This Is Serious Work</h2>
+        <div id="judgeNotes" class="judge-notes">
+          <div class="note-item">Controlled lab simulator with explicit trust boundaries.</div>
+          <div class="note-item">Normal and adversarial flows shown side by side.</div>
+          <div class="note-item">Cryptographic discussion tied to unsigned EMV fields.</div>
+          <div class="note-item">Detection and defense guidance included in the same dashboard.</div>
+        </div>
+      </section>
+    </section>
+
+    <section class="card">
+      <h2>Recent Runs</h2>
+      <p class="section-caption">Showing 4 records per page to keep the dashboard short, clean, and presentation-ready.</p>
+      <div id="logList" class="log-list">
+        <div class="empty">No transactions logged yet.</div>
+      </div>
+      <div class="pagination-bar">
+        <button class="btn btn-ghost" id="prevPageBtn" type="button">Previous</button>
+        <span id="pageLabel">Page 1</span>
+        <button class="btn btn-ghost" id="nextPageBtn" type="button">Next</button>
+      </div>
+    </section>
+ <br>
+    <footer class="footer" style="margin-top: 20px; bottom: 0;">
+      <div class="footer-top">
+        <div class="footer-brand">
+          <div class="footer-logo">
+            <img src="assets/logo.svg" alt="EMV MITM Simulator Logo" width="40" height="40" />
+            <div>
+              <h3>EMV MITM Simulator</h3>
+              <p>Payment Security Research Platform</p>
+            </div>
+          </div>
+          <p class="footer-description">A controlled teaching dashboard for demonstrating trust-boundary failure, attack detection, and defensive design in contactless payment simulations.</p>
+          <div class="footer-social">
+            <a href="#" aria-label="GitHub" class="social-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/>
+              </svg>
+            </a>
+            <a href="#" aria-label="LinkedIn" class="social-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+              </svg>
+            </a>
+            <a href="#" aria-label="Twitter" class="social-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+              </svg>
+            </a>
+            <a href="#" aria-label="Email" class="social-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                <path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/>
+              </svg>
+            </a>
+          </div>
+        </div>
+        <div class="footer-links-grid">
+          <div class="footer-links-column">
+            <h4>Quick Links</h4>
+            <ul>
+              <li><a href="#">Dashboard</a></li>
+              <li><a href="#">Transaction History</a></li>
+              <li><a href="#">Audit Trail</a></li>
+              <li><a href="#">Admin Settings</a></li>
+            </ul>
+          </div>
+          <div class="footer-links-column">
+            <h4>Resources</h4>
+            <ul>
+              <li><a href="#">Documentation</a></li>
+              <li><a href="#">API Reference</a></li>
+              <li><a href="#">Security Guidelines</a></li>
+              <li><a href="#">Research Papers</a></li>
+            </ul>
+          </div>
+          <div class="footer-links-column">
+            <h4>Support</h4>
+            <ul>
+              <li><a href="#">Help Center</a></li>
+              <li><a href="#">Contact Us</a></li>
+              <li><a href="#">Report Issue</a></li>
+              <li><a href="#">FAQ</a></li>
+            </ul>
+          </div>
+          <div class="footer-links-column">
+            <h4>Legal</h4>
+            <ul>
+              <li><a href="#">Privacy Policy</a></li>
+              <li><a href="#">Terms of Service</a></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <div class="footer-bottom-left">
+          <p>&copy; 2026 EMV MITM Simulator. All rights reserved.</p>
+          <p>For academic and research purposes only. Not connected to real payment networks.</p>
+        </div>
+        <div class="footer-bottom-right">
+          <p>Version 1.0.0 | Last Updated: April 2026</p>
+        </div>
+      </div>
+    </footer>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>

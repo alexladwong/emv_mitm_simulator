@@ -1,0 +1,71 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="128" y1="96" x2="896" y2="928" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#132844"/>
+      <stop offset="1" stop-color="#09111E"/>
+    </linearGradient>
+    <linearGradient id="panel" x1="280" y1="188" x2="744" y2="828" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FF8B74"/>
+      <stop offset="1" stop-color="#C53E49"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="350" y1="296" x2="672" y2="662" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FF6776"/>
+      <stop offset="1" stop-color="#FFB14A"/>
+    </linearGradient>
+    <linearGradient id="metal" x1="296" y1="248" x2="704" y2="664" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F7F7FA"/>
+      <stop offset="1" stop-color="#BCC4D3"/>
+    </linearGradient>
+    <filter id="shadow" x="172" y="132" width="680" height="760" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feFlood flood-opacity="0" result="BackgroundImageFix"/>
+      <feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>
+      <feOffset dy="22"/>
+      <feGaussianBlur stdDeviation="28"/>
+      <feComposite in2="hardAlpha" operator="out"/>
+      <feColorMatrix type="matrix" values="0 0 0 0 0.0104167 0 0 0 0 0.0292107 0 0 0 0 0.0603175 0 0 0 0.4 0"/>
+      <feBlend mode="normal" in2="BackgroundImageFix" result="effect1_dropShadow_1_1"/>
+      <feBlend mode="normal" in="SourceGraphic" in2="effect1_dropShadow_1_1" result="shape"/>
+    </filter>
+  </defs>
+
+  <rect width="1024" height="1024" rx="224" fill="url(#bg)"/>
+  <circle cx="792" cy="214" r="118" fill="#14304C" fill-opacity="0.55"/>
+  <circle cx="238" cy="814" r="156" fill="#0D2137" fill-opacity="0.72"/>
+
+  <g filter="url(#shadow)">
+    <rect x="244" y="184" width="536" height="656" rx="96" fill="url(#panel)"/>
+    <rect x="274" y="216" width="476" height="592" rx="74" fill="white" fill-opacity="0.08"/>
+
+    <path d="M366 380C366 299.366 431.366 234 512 234C592.634 234 658 299.366 658 380V408H614V380C614 323.667 568.333 278 512 278C455.667 278 410 323.667 410 380V408H366V380Z" fill="#FF9A66"/>
+    <circle cx="386" cy="380" r="28" fill="#FF6B6B"/>
+    <circle cx="638" cy="380" r="28" fill="#FF6B6B"/>
+
+    <rect x="300" y="408" width="128" height="22" rx="11" fill="#FF6B6B"/>
+    <circle cx="292" cy="419" r="24" fill="#FF6B6B"/>
+    <rect x="596" y="408" width="128" height="22" rx="11" fill="#FF6B6B"/>
+    <circle cx="732" cy="419" r="24" fill="#FF6B6B"/>
+
+    <rect x="300" y="620" width="128" height="22" rx="11" fill="#FF6B6B"/>
+    <circle cx="292" cy="631" r="24" fill="#FF6B6B"/>
+    <rect x="596" y="620" width="128" height="22" rx="11" fill="#FF6B6B"/>
+    <circle cx="732" cy="631" r="24" fill="#FF6B6B"/>
+
+    <circle cx="420" cy="419" r="18" fill="#FFB14A"/>
+    <circle cx="604" cy="419" r="18" fill="#FFB14A"/>
+    <circle cx="420" cy="631" r="18" fill="#FFB14A"/>
+    <circle cx="604" cy="631" r="18" fill="#FFB14A"/>
+
+    <path d="M512 298L674 594C688.766 620.982 669.233 654 638.485 654H385.515C354.767 654 335.234 620.982 350 594L512 298Z" fill="url(#metal)"/>
+    <path d="M512 350L628 562C638.571 581.321 624.584 605 602.485 605H421.515C399.416 605 385.429 581.321 396 562L512 350Z" fill="url(#accent)"/>
+
+    <rect x="488" y="424" width="48" height="102" rx="24" fill="url(#metal)"/>
+    <circle cx="512" cy="568" r="28" fill="url(#metal)"/>
+
+    <rect x="392" y="676" width="240" height="92" rx="26" fill="#E39A4B"/>
+    <rect x="404" y="686" width="216" height="72" rx="18" fill="white" fill-opacity="0.14"/>
+    <circle cx="512" cy="722" r="28" fill="url(#metal)"/>
+  </g>
+
+  <rect x="160" y="832" width="704" height="64" rx="32" fill="#091521" fill-opacity="0.88"/>
+  <text x="512" y="874" text-anchor="middle" fill="#EFFFF7" font-family="Menlo, Consolas, monospace" font-size="58" font-weight="700" letter-spacing="2">ladwongEMV</text>
+</svg>
