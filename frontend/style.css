@@ -269,14 +269,14 @@ body {
   width: min(1080px, 100%);
   display: grid;
   grid-template-columns: 1.2fr 0.9fr;
-  gap: 16px;
+  gap: 12px;
   align-items: stretch;
 }
 
 .auth-copy,
 .login-panel,
 .dialog-card {
-  padding: 24px;
+  padding: 16px;
   border: 1px solid rgba(74, 226, 188, 0.24);
   border-radius: 24px;
   background: linear-gradient(180deg, rgba(16, 34, 63, 0.98), rgba(8, 17, 31, 0.98));
@@ -295,18 +295,18 @@ body {
 .auth-copy {
   display: grid;
   align-content: start;
-  gap: 12px;
+  gap: 8px;
 }
 
 .auth-points {
   display: grid;
-  gap: 8px;
+  gap: 6px;
 }
 
 .login-form {
   display: grid;
-  gap: 14px;
-  margin-top: 18px;
+  gap: 10px;
+  margin-top: 12px;
 }
 
 .login-form .is-hidden,
@@ -321,15 +321,15 @@ body {
 
 .login-actions {
   display: flex;
-  gap: 12px;
+  gap: 8px;
   flex-wrap: wrap;
 }
 
 .dialog-actions {
   display: flex;
   justify-content: flex-end;
-  gap: 12px;
-  margin-top: 24px;
+  gap: 8px;
+  margin-top: 16px;
   flex-wrap: wrap;
 }
 
@@ -347,7 +347,7 @@ body {
 .container {
   width: min(1280px, calc(100% - 24px));
   margin: 0 auto;
-  padding: 16px 0 24px;
+  padding: 12px 0 16px;
 }
 
 .floating-logout {
@@ -370,8 +370,8 @@ body {
 }
 
 .header {
-  margin-bottom: 16px;
-  padding: 24px;
+  margin-bottom: 10px;
+  padding: 16px;
   border: 1px solid var(--line);
   border-radius: 22px;
   background: linear-gradient(135deg, rgba(8, 17, 31, 0.92), rgba(10, 28, 46, 0.88));
@@ -416,16 +416,16 @@ h1 {
 .attack-toggle {
   display: flex;
   justify-content: space-between;
-  gap: 12px;
+  gap: 10px;
   align-items: center;
-  margin-bottom: 8px;
-  padding: 16px 20px;
+  margin-bottom: 6px;
+  padding: 12px 16px;
   flex-wrap: wrap;
 }
 
 .lab-notice {
-  margin-bottom: 10px;
-  padding: 12px 16px;
+  margin-bottom: 6px;
+  padding: 10px 14px;
   border: 1px solid rgba(255, 176, 74, 0.28);
   border-radius: 18px;
   background: rgba(255, 176, 74, 0.08);
@@ -435,10 +435,10 @@ h1 {
 .auth-status-bar {
   display: flex;
   justify-content: space-between;
-  gap: 12px;
+  gap: 10px;
   align-items: center;
-  margin-bottom: 10px;
-  padding: 12px 16px;
+  margin-bottom: 6px;
+  padding: 10px 14px;
   border: 1px solid rgba(74, 226, 188, 0.16);
   border-radius: 18px;
   background: rgba(9, 20, 37, 0.82);
@@ -565,12 +565,12 @@ input:focus {
 .metrics-strip {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(168px, 1fr));
-  gap: 12px;
-  margin-bottom: 14px;
+  gap: 8px;
+  margin-bottom: 8px;
 }
 
 .metric-card {
-  padding: 16px;
+  padding: 12px;
   border: 1px solid rgba(74, 226, 188, 0.16);
   border-radius: 18px;
   background: linear-gradient(180deg, rgba(16, 34, 63, 0.94), rgba(8, 17, 31, 0.9));
@@ -591,8 +591,8 @@ input:focus {
 .grid,
 .lower-grid {
   display: grid;
-  gap: 12px;
-  margin-bottom: 12px;
+  gap: 8px;
+  margin-bottom: 8px;
   align-items: start;
 }
 
@@ -609,7 +609,7 @@ input:focus {
 }
 
 .card {
-  padding: 16px;
+  padding: 20px;
 }
 
 .section-label {
@@ -628,7 +628,7 @@ input:focus {
 .empty {
   color: var(--muted);
   text-align: center;
-  padding: 14px;
+  padding: 10px;
   border: 1px dashed rgba(138, 182, 171, 0.28);
   border-radius: 16px;
 }
@@ -636,9 +636,9 @@ input:focus {
 .trust-flow {
   display: grid;
   grid-template-columns: minmax(96px, 1fr) 58px minmax(96px, 1fr) 58px minmax(96px, 1fr) 58px minmax(96px, 1fr);
-  gap: 6px;
+  gap: 4px;
   align-items: center;
-  margin-top: 10px;
+  margin-top: 6px;
 }
 
 .flow-node,
@@ -1001,13 +1001,13 @@ input:focus {
 .footer-top {
   display: grid;
   grid-template-columns: 1.2fr 2fr;
-  gap: 40px;
-  padding: 32px 0;
+  gap: 24px;
+  padding: 24px 0;
 }
 
 .footer-brand {
   display: grid;
-  gap: 16px;
+  gap: 12px;
 }
 
 .footer-logo {
@@ -1065,11 +1065,11 @@ input:focus {
 .footer-links-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 24px;
+  gap: 12px;
 }
 
 .footer-links-column h4 {
-  margin: 0 0 16px;
+  margin: 0 0 12px;
   font-size: 0.9rem;
   font-weight: 600;
   color: var(--text);
@@ -1078,11 +1078,12 @@ input:focus {
 }
 
 .footer-links-column ul {
+  list-style: none;
   margin: 0;
   padding: 0;
-  list-style: none;
-  display: grid;
-  gap: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
 .footer-links-column a {
@@ -1100,10 +1101,10 @@ input:focus {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 24px;
-  padding-top: 20px;
+  gap: 12px;
+  padding-top: 12px;
   border-top: 1px solid rgba(74, 226, 188, 0.12);
-  margin-top: 8px;
+  margin-top: 4px;
 }
 
 .footer-bottom-left {
