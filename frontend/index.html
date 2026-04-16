@@ -69,7 +69,10 @@
           </label>
           <label>
             Agent ID
-            <input type="password" id="loginPassword" autocomplete="off" required />
+            <div class="input-row">
+              <input type="password" id="loginPassword" autocomplete="off" required />
+              <button class="btn btn-ghost input-toggle" type="button" data-toggle-password="loginPassword">Show</button>
+            </div>
           </label>
           <label id="loginCodeGroup" class="is-hidden">
             SMS Verification Code
