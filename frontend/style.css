@@ -410,8 +410,17 @@ body {
 }
 
 .input-toggle {
-  min-width: 88px;
-  padding-inline: 12px;
+  min-width: 52px;
+  width: 52px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  font-size: 1rem;
+}
+
+.input-toggle-icon {
+  line-height: 1;
+  transform: translateY(1px);
 }
 
 .code-inputs {
@@ -1453,6 +1462,7 @@ input:focus {
 
   .input-toggle {
     width: 100%;
+    min-width: 0;
   }
 
   .amount-control {

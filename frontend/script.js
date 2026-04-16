@@ -1078,7 +1078,11 @@ passwordToggleButtons.forEach((button) => {
     if (!input) return;
     const isPassword = input.type === "password";
     input.type = isPassword ? "text" : "password";
-    button.textContent = isPassword ? "Hide" : "Show";
+    button.setAttribute("aria-label", isPassword ? "Hide password" : "Show password");
+    const icon = button.querySelector(".input-toggle-icon");
+    if (icon) {
+      icon.textContent = isPassword ? "🙈" : "👁";
+    }
   });
 });
 

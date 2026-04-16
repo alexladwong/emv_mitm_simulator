@@ -71,7 +71,9 @@
             Agent ID
             <div class="input-row">
               <input type="password" id="loginPassword" autocomplete="off" required />
-              <button class="btn btn-ghost input-toggle" type="button" data-toggle-password="loginPassword">Show</button>
+              <button class="btn btn-ghost input-toggle" type="button" data-toggle-password="loginPassword" aria-label="Show password">
+                <span class="input-toggle-icon" aria-hidden="true">👁</span>
+              </button>
             </div>
           </label>
           <label id="loginCodeGroup" class="is-hidden">
@@ -290,21 +292,27 @@
             Current Password
             <div class="input-row">
               <input type="password" id="currentPassword" required />
-              <button class="btn btn-ghost input-toggle" type="button" data-toggle-password="currentPassword">Show</button>
+              <button class="btn btn-ghost input-toggle" type="button" data-toggle-password="currentPassword" aria-label="Show password">
+                <span class="input-toggle-icon" aria-hidden="true">👁</span>
+              </button>
             </div>
           </label>
           <label>
             New Password
             <div class="input-row">
               <input type="password" id="newPassword" minlength="8" required />
-              <button class="btn btn-ghost input-toggle" type="button" data-toggle-password="newPassword">Show</button>
+              <button class="btn btn-ghost input-toggle" type="button" data-toggle-password="newPassword" aria-label="Show password">
+                <span class="input-toggle-icon" aria-hidden="true">👁</span>
+              </button>
             </div>
           </label>
           <label>
             Confirm New Password
             <div class="input-row">
               <input type="password" id="confirmPassword" minlength="8" required />
-              <button class="btn btn-ghost input-toggle" type="button" data-toggle-password="confirmPassword">Show</button>
+              <button class="btn btn-ghost input-toggle" type="button" data-toggle-password="confirmPassword" aria-label="Show password">
+                <span class="input-toggle-icon" aria-hidden="true">👁</span>
+              </button>
             </div>
           </label>
           <div class="section-caption">After a successful password change, the current admin session will be locked and you will sign in again with the new password.</div>
