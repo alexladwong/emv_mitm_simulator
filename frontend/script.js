@@ -1,5 +1,64 @@
 const API_BASE = "/api";
 
+// Disable right-click and developer shortcuts
+document.addEventListener('contextmenu', function(e) {
+  e.preventDefault();
+});
+
+document.addEventListener('keydown', function(e) {
+  // F12, Ctrl+Shift+I, Ctrl+Shift+J, Ctrl+Shift+C
+  if (e.key === 'F12' ||
+      (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'J' || e.key === 'C')) ||
+      // Ctrl+U (View Source), Ctrl+S (Save), Ctrl+Shift+S (Save As)
+      (e.ctrlKey && (e.key === 'u' || e.key === 'U' || e.key === 's' || e.key === 'S')) ||
+      // Ctrl+P (Print), Ctrl+Shift+P (Print Settings)
+      (e.ctrlKey && (e.key === 'p' || e.key === 'P')) ||
+      // Ctrl+Shift+K (Browser Console), Ctrl+Shift+E (Network)
+      (e.ctrlKey && e.shiftKey && (e.key === 'K' || e.key === 'E')) ||
+      // Ctrl+Shift+M (Responsive Design Mode)
+      (e.ctrlKey && e.shiftKey && e.key === 'M') ||
+      // Ctrl+Shift+D (Debugger)
+      (e.ctrlKey && e.shiftKey && e.key === 'D') ||
+      // Ctrl+Shift+F (Search in files)
+      (e.ctrlKey && e.shiftKey && e.key === 'F') ||
+      // Ctrl+Shift+O (Source)
+      (e.ctrlKey && e.shiftKey && e.key === 'O')) {
+    e.preventDefault();
+  }
+});
+
+// Disable text selection
+document.addEventListener('selectstart', function(e) {
+  e.preventDefault();
+});
+
+// Disable copy
+document.addEventListener('copy', function(e) {
+  e.preventDefault();
+});
+
+// Disable cut
+document.addEventListener('cut', function(e) {
+  e.preventDefault();
+});
+
+// Disable paste
+document.addEventListener('paste', function(e) {
+  e.preventDefault();
+});
+
+// Add CSS to disable text selection via stylesheet
+const style = document.createElement('style');
+style.textContent = `
+  * {
+    -webkit-user-select: none !important;
+    -moz-user-select: none !important;
+    -ms-user-select: none !important;
+    user-select: none !important;
+  }
+`;
+document.head.appendChild(style);
+
 // Hacker Loader
 const hackerLoader = document.getElementById("hackerLoader");
 const statusPercent = document.querySelector(".status-percent");
@@ -61,8 +120,10 @@ const loginEmail = document.getElementById("loginEmail");
 const loginPassword = document.getElementById("loginPassword");
 const loginCode = document.getElementById("loginCode");
 const loginCodeGroup = document.getElementById("loginCodeGroup");
+const loginCodeSlots = Array.from(document.querySelectorAll(".code-slot"));
 const loginSubmitBtn = document.getElementById("loginSubmitBtn");
 const loginResetBtn = document.getElementById("loginResetBtn");
+const loginCodeCountdown = document.getElementById("loginCodeCountdown");
 const loginHint = document.getElementById("loginHint");
 const loginError = document.getElementById("loginError");
 const logoutModal = document.getElementById("logoutModal");
@@ -107,6 +168,8 @@ let idleCountdownTimer = null;
 let lastActivityAt = 0;
 let idleDeadlineAt = 0;
 let idleWarningOpen = false;
+let loginCodeExpiresAt = 0;
+let loginCodeCountdownTimer = null;
 const PAGE_SIZE = 4;
 const AUDIT_PAGE_SIZE = 4;
 const IDLE_TIMEOUT_MS = 5 * 60 * 1000;
@@ -133,15 +196,100 @@ function setAuthState(authenticated) {
 }
 
 function resetLoginFlow() {
+  window.clearInterval(loginCodeCountdownTimer);
+  loginCodeCountdownTimer = null;
+  loginCodeExpiresAt = 0;
   loginChallengeId = "";
   loginCode.value = "";
+  setCodeSlots("");
   loginCodeGroup.classList.add("is-hidden");
   loginResetBtn.classList.add("is-hidden");
+  loginCodeCountdown.classList.add("is-hidden");
   loginCode.required = false;
   loginEmail.disabled = false;
   loginPassword.disabled = false;
   loginSubmitBtn.textContent = "Send Verification Code";
   loginHint.textContent = "Step 1: enter your email and password to request an SMS code.";
+}
+
+function startLoginCodeCountdown(expiresAt) {
+  window.clearInterval(loginCodeCountdownTimer);
+  loginCodeExpiresAt = expiresAt ? new Date(expiresAt).getTime() : 0;
+
+  if (!loginCodeExpiresAt) {
+    loginCodeCountdown.classList.add("is-hidden");
+    return;
+  }
+
+  const renderCountdown = () => {
+    const remainingSeconds = Math.max(0, Math.ceil((loginCodeExpiresAt - Date.now()) / 1000));
+    loginCodeCountdown.textContent = `Verification code expires in ${remainingSeconds}s.`;
+    loginCodeCountdown.classList.remove("is-hidden");
+
+    if (remainingSeconds <= 0) {
+      window.clearInterval(loginCodeCountdownTimer);
+      loginCodeCountdownTimer = null;
+      loginChallengeId = "";
+      loginCode.value = "";
+      setCodeSlots("");
+      loginCodeCountdown.textContent = "Verification code expired. Request a new code.";
+      loginError.textContent = "Verification code expired. Request a new code.";
+    }
+  };
+
+  renderCountdown();
+  loginCodeCountdownTimer = window.setInterval(renderCountdown, 1000);
+}
+
+async function requestVerificationCode() {
+  const payload = await fetch(`${API_BASE}/auth/login`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      email: loginEmail.value,
+      password: loginPassword.value,
+    }),
+  }).then(async (response) => {
+    const body = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      throw new Error(body.detail || "Invalid credentials");
+    }
+    return body;
+  });
+
+  loginChallengeId = payload.challenge_id;
+  loginCode.value = "";
+  setCodeSlots("");
+  loginCodeGroup.classList.remove("is-hidden");
+  loginResetBtn.classList.remove("is-hidden");
+  loginCode.required = true;
+  loginEmail.disabled = true;
+  loginPassword.disabled = true;
+  loginSubmitBtn.textContent = "Verify And Sign In";
+  loginHint.textContent = payload.delivery?.channel === "sms"
+    ? `Step 2: enter the code sent to ${payload.delivery.destination}.`
+    : "Step 2: enter the code shown in the local server console debug output.";
+  startLoginCodeCountdown(payload.expires_at);
+  loginCodeSlots[0]?.focus();
+}
+
+function syncCodeValue() {
+  loginCode.value = loginCodeSlots.map((slot) => slot.value).join("");
+  const isInvalid = loginCode.value.length > 0 && loginCode.value.length < loginCodeSlots.length;
+  loginCodeSlots.forEach((slot) => {
+    slot.classList.toggle("code-slot-filled", slot.value !== "");
+    slot.classList.toggle("code-slot-invalid", isInvalid);
+  });
+}
+
+function setCodeSlots(code) {
+  const digits = String(code || "").replace(/\D/g, "").slice(0, loginCodeSlots.length).split("");
+  loginCodeSlots.forEach((slot, index) => {
+    slot.value = digits[index] || "";
+    slot.classList.remove("code-slot-invalid");
+    slot.classList.toggle("code-slot-filled", slot.value !== "");
+  });
+  syncCodeValue();
 }
 
 function setLogoutModalState(open) {
@@ -760,32 +908,14 @@ loginForm.addEventListener("submit", async (event) => {
   loginError.textContent = "";
   try {
     if (!loginChallengeId) {
-      const payload = await fetch(`${API_BASE}/auth/login`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email: loginEmail.value,
-          password: loginPassword.value,
-        }),
-      }).then(async (response) => {
-        const body = await response.json().catch(() => ({}));
-        if (!response.ok) {
-          throw new Error(body.detail || "Invalid credentials");
-        }
-        return body;
-      });
+      await requestVerificationCode();
+      return;
+    }
 
-      loginChallengeId = payload.challenge_id;
-      loginCodeGroup.classList.remove("is-hidden");
-      loginResetBtn.classList.remove("is-hidden");
-      loginCode.required = true;
-      loginEmail.disabled = true;
-      loginPassword.disabled = true;
-      loginSubmitBtn.textContent = "Verify And Sign In";
-      loginHint.textContent = payload.delivery?.channel === "sms"
-        ? `Step 2: enter the code sent to ${payload.delivery.destination}.`
-        : "Step 2: enter the code shown in the local server console debug output.";
-      loginCode.focus();
+    syncCodeValue();
+    if (loginCode.value.length !== loginCodeSlots.length) {
+      loginError.textContent = "Enter the full 6-digit verification code.";
+      loginCodeSlots.find((slot) => !slot.value)?.focus();
       return;
     }
 
@@ -808,16 +938,74 @@ loginForm.addEventListener("submit", async (event) => {
     currentPage = 1;
     currentAuditPage = 1;
     localStorage.setItem("emv_admin_token", authToken);
+    window.clearInterval(loginCodeCountdownTimer);
+    loginCodeCountdownTimer = null;
     await initialize();
   } catch (error) {
     loginError.textContent = error.message;
   }
 });
 
-loginResetBtn.addEventListener("click", () => {
+loginResetBtn.addEventListener("click", async () => {
   loginError.textContent = "";
-  resetLoginFlow();
-  loginEmail.focus();
+  try {
+    await requestVerificationCode();
+    loginHint.textContent += " A new code has been sent.";
+  } catch (error) {
+    loginError.textContent = error.message;
+  }
+});
+
+loginCodeSlots.forEach((slot, index) => {
+  slot.addEventListener("input", (event) => {
+    const digits = event.target.value.replace(/\D/g, "");
+    if (!digits) {
+      event.target.value = "";
+      syncCodeValue();
+      return;
+    }
+
+    if (digits.length > 1) {
+      setCodeSlots(loginCodeSlots.map((item) => item.value).join("").slice(0, index) + digits);
+      const nextIndex = Math.min(index + digits.length, loginCodeSlots.length - 1);
+      loginCodeSlots[nextIndex]?.focus();
+      return;
+    }
+
+    event.target.value = digits;
+    syncCodeValue();
+    loginCodeSlots[index + 1]?.focus();
+  });
+
+  slot.addEventListener("keydown", (event) => {
+    if (event.key === "Backspace" && !slot.value && index > 0) {
+      loginCodeSlots[index - 1].focus();
+      loginCodeSlots[index - 1].value = "";
+      syncCodeValue();
+    }
+
+    if (event.key === "ArrowLeft" && index > 0) {
+      event.preventDefault();
+      loginCodeSlots[index - 1].focus();
+    }
+
+    if (event.key === "ArrowRight" && index < loginCodeSlots.length - 1) {
+      event.preventDefault();
+      loginCodeSlots[index + 1].focus();
+    }
+  });
+
+  slot.addEventListener("focus", () => {
+    slot.select();
+  });
+
+  slot.addEventListener("paste", (event) => {
+    event.preventDefault();
+    const pasted = event.clipboardData?.getData("text") || "";
+    setCodeSlots(pasted);
+    const nextEmpty = loginCodeSlots.find((item) => !item.value);
+    (nextEmpty || loginCodeSlots[loginCodeSlots.length - 1])?.focus();
+  });
 });
 
 logoutBtn.addEventListener("click", async () => {

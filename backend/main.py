@@ -48,7 +48,7 @@ ADMIN_EMAIL = "admin@ladwongdevelopers.dev"
 ADMIN_PASSWORD = "Admin@123"
 ADMIN_PHONE = "+256752213955"
 SESSION_HOURS = 12
-LOGIN_CODE_MINUTES = int(os.getenv("LOGIN_CODE_MINUTES", "5"))
+LOGIN_CODE_SECONDS = int(os.getenv("LOGIN_CODE_SECONDS", "30"))
 SMS_API_URL = os.getenv("SMS_API_URL", "https://yoolasms.com/api/v1/send").strip()
 SMS_API_KEY = os.getenv("SMS_API_KEY", "").strip()
 SMS_TO_NUMBER = os.getenv("SMS_TO_NUMBER", "").strip()
@@ -124,7 +124,7 @@ def _issue_token(email: str) -> dict[str, str]:
 def _issue_login_challenge(email: str) -> dict[str, str]:
     challenge_id = uuid4().hex
     code = f"{secrets.randbelow(1_000_000):06d}"
-    expires_at = (_utcnow() + timedelta(minutes=LOGIN_CODE_MINUTES)).isoformat()
+    expires_at = (_utcnow() + timedelta(seconds=LOGIN_CODE_SECONDS)).isoformat()
     with _get_connection() as connection:
         connection.execute("DELETE FROM login_challenges WHERE expires_at <= ?", (_utcnow().isoformat(),))
         connection.execute(
@@ -139,11 +139,21 @@ def _issue_login_challenge(email: str) -> dict[str, str]:
 
 
 def _send_sms_code(email: str, code: str) -> dict[str, str]:
-    message = f"Your EMV simulator admin code is {code}. It expires in {LOGIN_CODE_MINUTES} minutes."
+    message = f"Your EMV simulator admin code is {code}. It expires in {LOGIN_CODE_SECONDS} seconds."
     sms_api_url = _get_setting("SMS_API_URL", SMS_API_URL)
     sms_api_key = _get_setting("SMS_API_KEY", SMS_API_KEY)
     recipient_number = _get_user_phone_number(email) or _get_setting("SMS_TO_NUMBER", SMS_TO_NUMBER)
     sender_name = _get_setting("SMS_SENDER", SMS_SENDER) or SMS_SENDER
+
+    def _debug_delivery(reason: str) -> dict[str, str]:
+        print(f"[EMV 2FA DEBUG] {email} verification code: {code}")
+        _write_audit_log(
+            "2fa_sms",
+            email,
+            "debug",
+            f"{reason}. Debug fallback active for {_mask_phone_number(recipient_number or '+0000')}",
+        )
+        return {"channel": "debug", "destination": "server console"}
 
     if sms_api_url and sms_api_key and recipient_number:
         request_body = {
@@ -166,17 +176,17 @@ def _send_sms_code(email: str, code: str) -> dict[str, str]:
         try:
             with urllib.request.urlopen(request, timeout=10) as response:
                 response.read()
-        except urllib.error.URLError as error:
+        except (urllib.error.URLError, TimeoutError, OSError) as error:
             _write_audit_log("2fa_sms", email, "failed", f"SMS delivery failed: {error}")
+            if SMS_DEBUG_FALLBACK:
+                return _debug_delivery("SMS provider timed out or failed")
             raise HTTPException(status_code=502, detail="Failed to send SMS verification code") from error
 
         _write_audit_log("2fa_sms", email, "success", f"Verification code sent to {_mask_phone_number(recipient_number)}")
         return {"channel": "sms", "destination": _mask_phone_number(recipient_number)}
 
     if SMS_DEBUG_FALLBACK:
-        print(f"[EMV 2FA DEBUG] {email} verification code: {code}")
-        _write_audit_log("2fa_sms", email, "debug", f"SMS debug fallback active for {_mask_phone_number(recipient_number or '+0000')}")
-        return {"channel": "debug", "destination": "server console"}
+        return _debug_delivery("SMS provider not configured")
 
     _write_audit_log("2fa_sms", email, "failed", "SMS provider not configured")
     raise HTTPException(status_code=500, detail="SMS 2FA is not configured. Add SMS_API_KEY and provider settings in .env")

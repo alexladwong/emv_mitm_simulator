@@ -78,19 +78,28 @@
           </label>
           <label id="loginCodeGroup" class="is-hidden">
             SMS Verification Code
-            <input type="text" id="loginCode" inputmode="numeric" autocomplete="one-time-code" maxlength="6" />
+            <input type="hidden" id="loginCode" />
+            <div class="code-inputs" id="loginCodeInputs">
+              <input type="text" class="code-slot" inputmode="numeric" autocomplete="one-time-code" maxlength="1" aria-label="Verification code digit 1" />
+              <input type="text" class="code-slot" inputmode="numeric" maxlength="1" aria-label="Verification code digit 2" />
+              <input type="text" class="code-slot" inputmode="numeric" maxlength="1" aria-label="Verification code digit 3" />
+              <input type="text" class="code-slot" inputmode="numeric" maxlength="1" aria-label="Verification code digit 4" />
+              <input type="text" class="code-slot" inputmode="numeric" maxlength="1" aria-label="Verification code digit 5" />
+              <input type="text" class="code-slot" inputmode="numeric" maxlength="1" aria-label="Verification code digit 6" />
+            </div>
           </label>
           <div class="login-actions">
             <button class="btn" id="loginSubmitBtn" type="submit">Send Verification Code</button>
-            <button class="btn btn-ghost is-hidden" id="loginResetBtn" type="button">Start Over</button>
+            <button class="btn btn-ghost is-hidden" id="loginResetBtn" type="button">Resend 2FA</button>
           </div>
+          <div id="loginCodeCountdown" class="login-code-countdown is-hidden">Verification code expires in 40s.</div>
         </form>
         <div id="loginHint" class="login-hint">Step 1: enter your email and password to request an SMS code.</div>
         <div id="loginError" class="login-error"></div>
       </section>
     </div>
   </div>
-  <div id="logoutModal" class="dialog-overlay is-hidden" aria-hidden="true">
+  <div id="logoutModal" class="dialog-overlay is-hidden">
     <div class="dialog-card" role="dialog" aria-modal="true" aria-labelledby="logoutTitle">
       <p class="kicker">Confirm Logout</p>
       <h2 id="logoutTitle">End Admin Session?</h2>
@@ -101,7 +110,7 @@
       </div>
     </div>
   </div>
-  <div id="idleWarningModal" class="dialog-overlay is-hidden" aria-hidden="true">
+  <div id="idleWarningModal" class="dialog-overlay is-hidden">
     <div class="dialog-card dialog-card-warning" role="dialog" aria-modal="true" aria-labelledby="idleWarningTitle">
       <p class="kicker">Session Warning</p>
       <h2 id="idleWarningTitle">Auto Logout In <span id="idleCountdownLabel">60</span>s</h2>
