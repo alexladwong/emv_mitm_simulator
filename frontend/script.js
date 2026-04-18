@@ -175,7 +175,7 @@ let loginCodeExpiresAt = 0;
 let loginCodeCountdownTimer = null;
 const PAGE_SIZE = 4;
 const AUDIT_PAGE_SIZE = 4;
-const IDLE_TIMEOUT_MS = 5 * 60 * 1000;
+const IDLE_TIMEOUT_MS = 60 * 60 * 1000;
 const IDLE_WARNING_MS = 60 * 1000;
 
 function authHeaders(extra = {}) {
