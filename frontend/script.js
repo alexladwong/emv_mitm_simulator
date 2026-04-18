@@ -223,9 +223,15 @@ function startLoginCodeCountdown(expiresAt) {
     return;
   }
 
+  const formatCountdown = (totalSeconds) => {
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    return `${minutes}m ${String(seconds).padStart(2, "0")}s`;
+  };
+
   const renderCountdown = () => {
     const remainingSeconds = Math.max(0, Math.ceil((loginCodeExpiresAt - Date.now()) / 1000));
-    loginCodeCountdown.textContent = `Verification code expires in ${remainingSeconds}s.`;
+    loginCodeCountdown.textContent = `Verification code expires in ${formatCountdown(remainingSeconds)}.`;
     loginCodeCountdown.classList.remove("is-hidden");
 
     if (remainingSeconds <= 0) {
@@ -244,6 +250,7 @@ function startLoginCodeCountdown(expiresAt) {
 }
 
 async function requestVerificationCode() {
+  loginError.textContent = "";
   const payload = await fetch(`${API_BASE}/auth/login`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -264,6 +271,7 @@ async function requestVerificationCode() {
   setCodeSlots("");
   loginCodeGroup.classList.remove("is-hidden");
   loginResetBtn.classList.remove("is-hidden");
+  loginCodeCountdown.classList.remove("is-hidden");
   loginCode.required = true;
   loginEmail.disabled = true;
   loginPassword.disabled = true;
