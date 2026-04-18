@@ -51,12 +51,12 @@ ADMIN_EMAIL = os.getenv("ADMIN_EMAIL", "admin@ladwongdevelopers.dev").strip()
 ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "Admin@123").strip()
 ADMIN_PHONE = os.getenv("ADMIN_PHONE", "+256752213955").strip()
 SESSION_HOURS = 12
-LOGIN_CODE_SECONDS = int(os.getenv("LOGIN_CODE_SECONDS", "300"))
+LOGIN_CODE_SECONDS = int(os.getenv("LOGIN_CODE_SECONDS", "120"))
 SMS_API_URL = os.getenv("SMS_API_URL", "https://yoolasms.com/api/v1/send").strip()
 SMS_API_KEY = os.getenv("SMS_API_KEY", "").strip()
 SMS_TO_NUMBER = os.getenv("SMS_TO_NUMBER", "").strip()
-SMS_SENDER = os.getenv("SMS_SENDER", "EMVLAB").strip() or "EMVLAB"
-SMS_DEBUG_FALLBACK = os.getenv("SMS_DEBUG_FALLBACK", "true").strip().lower() in {"1", "true", "yes", "on"}
+SMS_SENDER = os.getenv("SMS_SENDER", "").strip()
+SMS_DEBUG_FALLBACK = os.getenv("SMS_DEBUG_FALLBACK", "false").strip().lower() in {"1", "true", "yes", "on"}
 ALLOWED_HOSTS = [host.strip() for host in os.getenv("ALLOWED_HOSTS", "127.0.0.1,localhost,emv-mitm.onrender.com").split(",") if host.strip()]
 CONTENT_SECURITY_POLICY = (
     "default-src 'self'; "
@@ -147,6 +147,28 @@ def _mask_phone_number(number: str) -> str:
     return f"+***{digits[-4:]}"
 
 
+def _normalize_sms_phone_number(number: str) -> str:
+    if not number:
+        return ""
+    normalized_parts: list[str] = []
+    for raw_part in number.split(","):
+        # Preserve the + sign for international format
+        has_plus = raw_part.strip().startswith("+")
+        digits = "".join(char for char in raw_part if char.isdigit())
+        if digits:
+            # Add + back if it was present and digits remain
+            normalized_number = f"+{digits}" if has_plus else digits
+            normalized_parts.append(normalized_number)
+    return ",".join(normalized_parts)
+
+
+def _normalize_sms_sender(sender: str) -> str:
+    cleaned = "".join(char for char in (sender or "") if char.isalnum())
+    if not cleaned or len(cleaned) > 11:
+        return ""
+    return cleaned
+
+
 def _issue_token(email: str) -> dict[str, str]:
     token = uuid4().hex
     expires_at = (_utcnow() + timedelta(hours=SESSION_HOURS)).isoformat()
@@ -180,8 +202,10 @@ def _send_sms_code(email: str, code: str) -> dict[str, str]:
     message = f"Your EMV simulator admin code is {code}. It expires in {LOGIN_CODE_SECONDS} seconds."
     sms_api_url = _get_setting("SMS_API_URL", SMS_API_URL)
     sms_api_key = _get_setting("SMS_API_KEY", SMS_API_KEY)
-    recipient_number = _get_user_phone_number(email) or _get_setting("SMS_TO_NUMBER", SMS_TO_NUMBER)
-    sender_name = _get_setting("SMS_SENDER", SMS_SENDER) or SMS_SENDER
+    raw_recipient_number = _get_user_phone_number(email) or _get_setting("SMS_TO_NUMBER", SMS_TO_NUMBER)
+    recipient_number = _normalize_sms_phone_number(raw_recipient_number)
+    configured_sender = _get_setting("SMS_SENDER", SMS_SENDER)
+    sender_name = _normalize_sms_sender(configured_sender)
 
     def _debug_delivery(reason: str) -> dict[str, str]:
         print(f"[EMV 2FA DEBUG] {email} verification code: {code}")
@@ -213,14 +237,37 @@ def _send_sms_code(email: str, code: str) -> dict[str, str]:
         )
         try:
             with urllib.request.urlopen(request, timeout=10) as response:
-                response.read()
+                response_body = response.read().decode("utf-8", errors="replace").strip()
+                response_status = getattr(response, "status", response.getcode() if hasattr(response, 'getcode') else 200)
+                
+                # Check if the response indicates success (typically 200-299)
+                if response_status < 200 or response_status >= 300:
+                    _write_audit_log(
+                        "2fa_sms",
+                        email,
+                        "failed",
+                        f"SMS provider returned error status {response_status}: {response_body[:200]}"
+                    )
+                    if SMS_DEBUG_FALLBACK:
+                        return _debug_delivery(f"SMS provider returned error status {response_status}")
+                    raise HTTPException(
+                        status_code=502, 
+                        detail=f"SMS provider returned error status {response_status}"
+                    )
+                    
         except (urllib.error.URLError, TimeoutError, OSError) as error:
             _write_audit_log("2fa_sms", email, "failed", f"SMS delivery failed: {error}")
             if SMS_DEBUG_FALLBACK:
                 return _debug_delivery("SMS provider timed out or failed")
             raise HTTPException(status_code=502, detail="Failed to send SMS verification code") from error
 
-        _write_audit_log("2fa_sms", email, "success", f"Verification code sent to {_mask_phone_number(recipient_number)}")
+        response_snippet = response_body[:180] if response_body else "empty response body"
+        _write_audit_log(
+            "2fa_sms",
+            email,
+            "success",
+            f"Provider accepted SMS to {_mask_phone_number(recipient_number)} (status={response_status}, sender={'provider-default' if not sender_name else sender_name}, response={response_snippet})",
+        )
         return {"channel": "sms", "destination": _mask_phone_number(recipient_number)}
 
     if SMS_DEBUG_FALLBACK:
@@ -628,6 +675,21 @@ def _read_audit_logs(limit: int = 25, offset: int = 0) -> list[dict[str, Any]]:
     return [dict(row) for row in rows]
 
 
+def _read_sms_diagnostics(limit: int = 5) -> list[dict[str, Any]]:
+    with _get_connection() as connection:
+        rows = connection.execute(
+            """
+            SELECT id, action, email, status, detail, created_at
+            FROM audit_logs
+            WHERE action = '2fa_sms'
+            ORDER BY id DESC
+            LIMIT ?
+            """,
+            (limit,),
+        ).fetchall()
+    return [dict(row) for row in rows]
+
+
 @app.on_event("startup")
 async def startup() -> None:
     _init_db()
@@ -906,6 +968,15 @@ async def three_lies(authorization: str | None = Header(default=None)) -> dict[s
         ],
         "root_cause": "The EMV trust model assumes honest card behavior and accurate verification reporting.",
     }
+
+
+@app.get("/api/diagnostics/sms")
+async def sms_diagnostics(
+    authorization: str | None = Header(default=None),
+    limit: int = Query(default=5, ge=1, le=20),
+) -> list[dict[str, Any]]:
+    _require_auth(authorization)
+    return _read_sms_diagnostics(limit)
 
 
 app.mount("/", StaticFiles(directory=FRONTEND_DIR), name="frontend")

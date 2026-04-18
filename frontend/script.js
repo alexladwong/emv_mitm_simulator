@@ -139,6 +139,7 @@ const authUserLabel = document.getElementById("authUserLabel");
 const sessionExpiryLabel = document.getElementById("sessionExpiryLabel");
 const sessionStatusChip = document.getElementById("sessionStatusChip");
 const auditBoard = document.getElementById("auditBoard");
+const smsDiagnosticsBoard = document.getElementById("smsDiagnosticsBoard");
 const passwordForm = document.getElementById("passwordForm");
 const currentPassword = document.getElementById("currentPassword");
 const newPassword = document.getElementById("newPassword");
@@ -281,6 +282,7 @@ async function requestVerificationCode() {
     : "Step 2: enter the code shown in the local server console debug output.";
   startLoginCodeCountdown(payload.expires_at);
   loginCodeSlots[0]?.focus();
+  return payload;
 }
 
 function syncCodeValue() {
@@ -578,6 +580,27 @@ function displayAuditLogs(entries) {
   updateAuditPagination(totalAuditRuns, entries.length);
 }
 
+function displaySmsDiagnostics(entries) {
+  if (!entries.length) {
+    smsDiagnosticsBoard.innerHTML = `<div class="empty">No SMS delivery diagnostics available yet.</div>`;
+    return;
+  }
+
+  smsDiagnosticsBoard.innerHTML = entries
+    .map((entry) => `
+      <article class="trace-entry ${entry.status === "failed" ? "trace-danger" : ""}">
+        <div class="trace-index">${entry.status === "success" ? "OK" : entry.status === "debug" ? "DBG" : "ERR"}</div>
+        <div class="trace-body">
+          <div class="trace-meta">SMS OTP · ${entry.status}</div>
+          <strong>${entry.email || "system"}</strong>
+          <div class="trace-detail trace-detail-code">${entry.detail}</div>
+          <div class="trace-detail">${formatDateTime(entry.created_at)}</div>
+        </div>
+      </article>
+    `)
+    .join("");
+}
+
 function buildTraceEntries(data) {
   const amount = Number(data.transaction_data?.amount || 0).toLocaleString();
   const shared = [
@@ -831,10 +854,11 @@ async function runTransaction() {
 async function loadLogs() {
   const offset = (currentPage - 1) * PAGE_SIZE;
   const auditOffset = (currentAuditPage - 1) * AUDIT_PAGE_SIZE;
-  const [entries, metrics, audit, txMeta, auditMeta] = await Promise.all([
+  const [entries, metrics, audit, smsDiagnostics, txMeta, auditMeta] = await Promise.all([
     getJson(`${API_BASE}/transactions?limit=${PAGE_SIZE}&offset=${offset}`),
     getJson(`${API_BASE}/metrics`),
     getJson(`${API_BASE}/audit?limit=${AUDIT_PAGE_SIZE}&offset=${auditOffset}`),
+    getJson(`${API_BASE}/diagnostics/sms?limit=3`),
     getJson(`${API_BASE}/transactions/meta`),
     getJson(`${API_BASE}/audit/meta`),
   ]);
@@ -843,6 +867,7 @@ async function loadLogs() {
   displayLogs(entries);
   displayMetrics(metrics);
   displayAuditLogs(audit);
+  displaySmsDiagnostics(smsDiagnostics);
 }
 
 async function initialize() {
@@ -853,7 +878,7 @@ async function initialize() {
 
   const offset = (currentPage - 1) * PAGE_SIZE;
   const auditOffset = (currentAuditPage - 1) * AUDIT_PAGE_SIZE;
-  const [me, status, lies, vulnerability, demo, logs, metrics, audit, txMeta, auditMeta] = await Promise.all([
+  const [me, status, lies, vulnerability, demo, logs, metrics, audit, smsDiagnostics, txMeta, auditMeta] = await Promise.all([
     getJson(`${API_BASE}/auth/me`),
     getJson(`${API_BASE}/mitm/status`),
     getJson(`${API_BASE}/the-three-lies`),
@@ -862,6 +887,7 @@ async function initialize() {
     getJson(`${API_BASE}/transactions?limit=${PAGE_SIZE}&offset=${offset}`),
     getJson(`${API_BASE}/metrics`),
     getJson(`${API_BASE}/audit?limit=${AUDIT_PAGE_SIZE}&offset=${auditOffset}`),
+    getJson(`${API_BASE}/diagnostics/sms?limit=3`),
     getJson(`${API_BASE}/transactions/meta`),
     getJson(`${API_BASE}/audit/meta`),
   ]);
@@ -877,6 +903,7 @@ async function initialize() {
   displayLogs(logs);
   displayMetrics(metrics);
   displayAuditLogs(audit);
+  displaySmsDiagnostics(smsDiagnostics);
   displayTelemetry(null, null, Boolean(status.attack_active));
   displayComparison();
   setAuthState(true);
@@ -961,8 +988,10 @@ loginForm.addEventListener("submit", async (event) => {
 loginResetBtn.addEventListener("click", async () => {
   loginError.textContent = "";
   try {
-    await requestVerificationCode();
-    loginHint.textContent += " A new code has been sent.";
+    const payload = await requestVerificationCode();
+    loginHint.textContent = payload.delivery?.channel === "sms"
+      ? `A new code has been sent to ${payload.delivery.destination}. Enter it below.`
+      : "A new code has been generated in the local server console. Enter it below.";
   } catch (error) {
     loginError.textContent = error.message;
   }

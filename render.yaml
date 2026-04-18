@@ -13,7 +13,7 @@ services:
       - key: ALLOWED_HOSTS
         value: emv-mitm.onrender.com
       - key: LOGIN_CODE_SECONDS
-        value: "300"
+        value: "120"
       - key: SMS_DEBUG_FALLBACK
         value: "false"
       - key: ADMIN_EMAIL
